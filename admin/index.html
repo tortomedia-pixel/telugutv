@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeluguTV – News Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--p:#5b1f8f;--pd:#1c0636;--g:#f2b705}
+*{box-sizing:border-box}body{margin:0;font-family:'Noto Sans Telugu',sans-serif;background:#f3f3f3;color:#1c1c1c}
+header{background:var(--pd);border-bottom:3px solid var(--g);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;color:#fff}
+header img{height:44px}
+main{max-width:980px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+.box{background:#fff;border-radius:12px;padding:20px}
+h2{margin:0 0 12px;font-size:18px}
+label{display:block;font-weight:600;font-size:13px;margin:12px 0 4px}
+input,textarea,select{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font:15px 'Noto Sans Telugu'}
+textarea{height:140px}
+.wc{font-size:12px;color:#666;text-align:right}.wc.bad{color:#c00}
+button{background:var(--p);color:#fff;border:0;border-radius:8px;padding:12px 18px;font:700 15px 'Noto Sans Telugu';cursor:pointer}
+button.ghost{background:#eee;color:#333;padding:6px 10px;font-size:12px}
+button:disabled{opacity:.5}
+.item{border-bottom:1px solid #eee;padding:10px 0;display:flex;gap:10px;align-items:flex-start}
+.item img{width:70px;height:52px;object-fit:cover;border-radius:6px;background:#ddd}
+.item h4{margin:0 0 4px;font-size:14px}.item small{color:#666}
+.item .btns{margin-left:auto;display:flex;gap:6px;flex-shrink:0}
+.msg{margin-top:10px;font-size:14px}
+#login{max-width:380px;margin:60px auto}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header><img src="logo.png" alt="TeluguTV"><span id="who"></span></header>
+
+<div id="login" class="box">
+  <h2>అడ్మిన్ లాగిన్</h2>
+  <label>Email</label><input id="em" type="email">
+  <label>Password</label><input id="pw" type="password">
+  <p><button id="loginBtn">Login</button></p>
+  <div class="msg" id="lmsg"></div>
+</div>
+
+<main id="app" class="hidden">
+  <div class="box">
+    <h2>కొత్త వార్త</h2>
+    <form id="f">
+      <label>శీర్షిక (Headline)</label><input id="title" maxlength="90" required>
+      <label>వార్త (60 పదాల లోపు)</label><textarea id="body" required></textarea>
+      <div class="wc" id="wc">0 / 60</div>
+      <label>విభాగం</label><select id="category"></select>
+      <label>జిల్లా</label><select id="district"></select>
+      <label>రిపోర్టర్</label><input id="reporter" placeholder="TeluguTV Desk">
+      <label>ఫోటో</label><input id="photo" type="file" accept="image/*">
+      <label>YouTube వీడియో లింక్ (ఐచ్ఛికం)</label><input id="videoUrl" placeholder="https://www.youtube.com/watch?v=...">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400"><input type="checkbox" id="notify" checked style="width:auto"> అందరికీ నోటిఫికేషన్ పంపు</label>
+      <p><button id="pub">పబ్లిష్ చేయండి</button></p>
+      <div class="msg" id="msg"></div>
+    </form>
+  </div>
+  <div class="box">
+    <h2>తాజా వార్తలు</h2>
+    <div id="list">లోడ్ అవుతోంది...</div>
+  </div>
+</main>
+
+<script type="module">
+// ==== Paste your Firebase web config here (Firebase console > Project settings > Your apps > Web app) ====
+const firebaseConfig = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+// =========================================================================================================
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
+
+// Keep these in the same order as lib/data/news.dart
+const CATEGORIES = {ap:"ఆంధ్రప్రదేశ్",ts:"తెలంగాణ",national:"జాతీయం",cinema:"సినిమా",sports:"క్రీడలు",business:"బిజినెస్",tech:"టెక్",devotional:"భక్తి"};
+const DISTRICTS = ['శ్రీకాకుళం','విజయనగరం','విశాఖపట్నం','కాకినాడ','రాజమహేంద్రవరం','ఏలూరు','విజయవాడ','అమరావతి','గుంటూరు','ఒంగోలు','నెల్లూరు','తిరుపతి','చిత్తూరు','కడప','కర్నూలు','అనంతపురం','హైదరాబాద్','వరంగల్'];
+
+const $ = id => document.getElementById(id);
+$('category').innerHTML = Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+$('district').innerHTML = DISTRICTS.map(d=>`<option>${d}</option>`).join('');
+$('body').oninput = () => { const w = $('body').value.trim().split(/\s+/).filter(Boolean).length; $('wc').textContent = `${w} / 60`; $('wc').classList.toggle('bad', w>60); };
+
+if (!firebaseConfig.apiKey) { $('lmsg').textContent = 'ముందుగా ఈ ఫైల్‌లో firebaseConfig నింపండి (README చూడండి).'; }
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app), db = getFirestore(app), storage = getStorage(app);
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+$('loginBtn').onclick = async () => {
+  try { await signInWithEmailAndPassword(auth, $('em').value, $('pw').value); }
+  catch (e) { $('lmsg').textContent = 'లాగిన్ విఫలమైంది: ' + e.code; }
+};
+
+let unsub = null;
+onAuthStateChanged(auth, user => {
+  $('login').classList.toggle('hidden', !!user);
+  $('app').classList.toggle('hidden', !user);
+  $('who').innerHTML = user ? `${esc(user.email)} <button class="ghost" id="out">Logout</button>` : '';
+  if (user) {
+    $('out').onclick = () => signOut(auth);
+    unsub = onSnapshot(query(collection(db,'news'), orderBy('createdAt','desc'), limit(40)), snap => {
+      $('list').innerHTML = snap.docs.map(d => { const n = d.data(); return `
+        <div class="item">${n.imageUrl?`<img src="${esc(n.imageUrl)}">`:'<img>'}
+          <div><h4>${esc(n.title)}</h4><small>${esc(CATEGORIES[n.category])} · ${esc(n.district)} · ${n.published?'✅ Live':'⏸ Hidden'}</small></div>
+          <div class="btns"><button class="ghost" data-t="${d.id}" data-p="${n.published?1:0}">${n.published?'Hide':'Show'}</button>
+          <button class="ghost" data-del="${d.id}">Delete</button></div></div>`; }).join('') || 'ఇంకా వార్తలు లేవు';
+    }, e => { $('list').textContent = 'అనుమతి లేదు – ఈ ఖాతాను admins లో చేర్చండి (README).'; });
+  } else if (unsub) { unsub(); unsub = null; }
+});
+
+$('list').onclick = async e => {
+  const t = e.target;
+  if (t.dataset.t) await updateDoc(doc(db,'news',t.dataset.t), { published: t.dataset.p !== '1' });
+  if (t.dataset.del && confirm('ఈ వార్తను శాశ్వతంగా తొలగించాలా?')) await deleteDoc(doc(db,'news',t.dataset.del));
+};
+
+$('f').onsubmit = async e => {
+  e.preventDefault();
+  const words = $('body').value.trim().split(/\s+/).filter(Boolean).length;
+  if (words > 60 && !confirm(`వార్త ${words} పదాలు ఉంది (60 కంటే ఎక్కువ). అయినా పబ్లిష్ చేయాలా?`)) return;
+  $('pub').disabled = true; $('msg').textContent = 'పబ్లిష్ అవుతోంది...';
+  try {
+    let imageUrl = '';
+    const file = $('photo').files[0];
+    if (file) {
+      const r = ref(storage, `news/${Date.now()}_${file.name}`);
+      await uploadBytes(r, file);
+      imageUrl = await getDownloadURL(r);
+    }
+    await addDoc(collection(db,'news'), {
+      title: $('title').value.trim(),
+      body: $('body').value.trim(),
+      category: $('category').value,
+      district: $('district').value,
+      districtIndex: DISTRICTS.indexOf($('district').value),
+      reporter: $('reporter').value.trim() || 'TeluguTV Desk',
+      imageUrl,
+      videoUrl: $('videoUrl').value.trim(),
+      notify: $('notify').checked,
+      published: true,
+      createdAt: serverTimestamp(),
+      createdBy: auth.currentUser.email
+    });
+    $('f').reset(); $('wc').textContent = '0 / 60';
+    $('msg').textContent = '✅ వార్త పబ్లిష్ అయింది';
+  } catch (err) { $('msg').textContent = '❌ ' + err.message; }
+  $('pub').disabled = false;
+};
+</script>
+</body>
+</html>
