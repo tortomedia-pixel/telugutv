@@ -14,7 +14,8 @@ class AppConfig {
   // once the app is published.
   static const shareFooter = '— TeluguTV News App\nhttps://www.youtube.com/@telugutv24x7';
 
-  // ---- Firebase (project: telugutv) ----
+  // ---- Firebase (from Firebase console > Project settings > Your apps > Android) ----
+  // Leave apiKey empty to run the app in DEMO mode with sample stories.
   static const firebaseApiKey = 'AIzaSyDvYKe6Vfk_3JurGm7AY8sAQy4te3JYEbg';
   static const firebaseAppId = '1:354338268019:android:684253eddae202eeeb5b06';
   static const firebaseMessagingSenderId = '354338268019';

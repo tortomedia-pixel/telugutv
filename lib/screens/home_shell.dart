@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../data/news.dart';
 import '../data/repository.dart';
+import '../data/reporter.dart';
+import 'post_screen.dart';
+import 'reporter_login_screen.dart';
 import '../theme.dart';
 import 'feed_screen.dart';
 import 'local_screen.dart';
@@ -54,7 +57,17 @@ PreferredSizeWidget brandBar({List<Widget>? actions, PreferredSizeWidget? bottom
   return AppBar(
     toolbarHeight: 60,
     titleSpacing: 12,
-    title: Image.asset('assets/images/logo.png', height: 44),
+    title: Builder(
+      builder: (context) => GestureDetector(
+        // Hidden reporter entry: long-press the logo for 1 second.
+        onLongPress: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => Reporter.isReporter.value
+              ? const PostScreen()
+              : const ReporterLoginScreen(),
+        )),
+        child: Image.asset('assets/images/logo.png', height: 44),
+      ),
+    ),
     actions: actions,
     bottom: bottom,
     shape: const Border(bottom: BorderSide(color: Brand.gold, width: 3)),

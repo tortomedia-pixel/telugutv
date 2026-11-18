@@ -25,6 +25,16 @@ The app runs in **demo mode** with sample stories until you add Firebase keys. T
 3. Open the **Actions** tab. The "Build TeluguTV APK" job starts on its own and takes about 8–10 minutes.
 4. When it shows a green tick, open it and download **TeluguTV-apk** at the bottom. Unzip it, copy `app-release.apk` to an Android phone and install it.
 
+## Who can post news
+
+Normal users **cannot post**. The app has no Post button for them.
+
+Reporters post in one of two ways:
+- **Inside the app:** **long-press the TeluguTV logo** at the top for about 1 second, then log in. A gold **➕ పోస్ట్** button appears on the news screen. They can take a photo with the camera or pick one from the gallery. Logout is on the Post screen.
+- **Admin panel website** (`admin/index.html`), from a computer or phone browser.
+
+Only accounts that you create **and** add to the `admins` list (Step 2, point 4) can log in to post. Anyone else gets "ఈ ఖాతాకు అనుమతి లేదు" (no permission). Firebase's security rules check this on the server, so the app can't be tricked. To remove a reporter, delete their document from `admins` or disable their login in Firebase Authentication.
+
 ## Step 2 — Connect Firebase (real news + notifications)
 
 1. Go to **console.firebase.google.com** → *Add project* → name it `telugutv`.

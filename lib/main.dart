@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'config.dart';
 import 'data/news.dart';
 import 'data/repository.dart';
+import 'data/reporter.dart';
 import 'theme.dart';
 import 'screens/home_shell.dart';
 
@@ -27,6 +28,7 @@ Future<void> main() async {
       ),
     );
     FirebaseMessaging.onBackgroundMessage(_bgHandler);
+    await Reporter.restore();
     try {
       await FirebaseMessaging.instance.requestPermission();
       await FirebaseMessaging.instance.subscribeToTopic('news');
