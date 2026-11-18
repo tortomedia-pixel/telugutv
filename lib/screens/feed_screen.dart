@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/news.dart';
+import '../data/reporter.dart';
+import 'post_screen.dart';
 import '../theme.dart';
 import '../widgets/news_card.dart';
 import 'home_shell.dart';
@@ -33,6 +35,19 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget build(BuildContext context) {
     final items = _items;
     return Scaffold(
+      floatingActionButton: ValueListenableBuilder<bool>(
+        valueListenable: Reporter.isReporter,
+        builder: (context, isReporter, _) => isReporter
+            ? FloatingActionButton.extended(
+                backgroundColor: Brand.gold,
+                foregroundColor: Brand.purpleDark,
+                onPressed: () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => const PostScreen())),
+                icon: const Icon(Icons.add),
+                label: const Text('పోస్ట్', style: TextStyle(fontWeight: FontWeight.w700)),
+              )
+            : const SizedBox.shrink(),
+      ),
       appBar: brandBar(
         actions: [
           IconButton(
@@ -70,17 +85,23 @@ class _FeedScreenState extends State<FeedScreen> {
                   final on = e.key == _cat;
                   return Padding(
                     padding: const EdgeInsets.only(right: 6, bottom: 8),
-                    child: ChoiceChip(
-                      label: Text(e.value),
-                      selected: on,
-                      showCheckmark: false,
-                      onSelected: (_) => _setCat(e.key),
-                      selectedColor: Brand.gold,
-                      backgroundColor: Colors.white.withOpacity(.12),
-                      side: BorderSide.none,
-                      labelStyle: TextStyle(
-                        color: on ? Brand.purpleDark : Colors.white,
-                        fontWeight: FontWeight.w600,
+                    child: GestureDetector(
+                      onTap: () => _setCat(e.key),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: on ? Brand.gold : Colors.white.withOpacity(.14),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          e.value,
+                          style: TextStyle(
+                            color: on ? Brand.purpleDark : Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
                       ),
                     ),
                   );
